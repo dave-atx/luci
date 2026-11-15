@@ -69,10 +69,6 @@ return baseclass.extend({
 Plugins are configured through the `luci_plugins` UCI config:
 
 ```
-config global 'global'
-    option enabled '1'                    # Global plugin system
-    option auth_login_enabled '1'         # Auth plugin class
-
 config auth_login 'd0ecde1b009d44ff82faa8b0ff219cef'
     option name 'Example Auth Plugin'
     option enabled '1'

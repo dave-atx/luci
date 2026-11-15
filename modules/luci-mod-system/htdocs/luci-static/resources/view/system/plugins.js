@@ -11,6 +11,14 @@ const view_plugins = `/www/${L.resource('view/plugins')}`;
 
 const luci_plugins = 'luci_plugins';
 
+// Names for the plugin classes LuCI itself provides hook points for.
+// Other classes are named after the class and type labels the plugin
+// declares.
+const class_names = {
+	auth_login: _('Login methods'),
+	http_headers: _('HTTP response headers'),
+};
+
 return view.extend({
 	load() {
 		return Promise.all([
@@ -31,15 +39,10 @@ return view.extend({
 		let m, s, o, p_enabled;
 		const groups = new Set();
 
-		// Set global uci config if absent
-		if (!uci.get(luci_plugins, 'global')) {
-			uci.add(luci_plugins, 'global', 'global');
-		}
-
 		for (let plugin of plugins) {
 			const name = plugin.id;
 			const class_type = `${plugin.class}_${plugin.type}`;
-			const class_type_i18n = `${plugin.class_i18n} ${plugin.type_i18n}`
+			const class_type_i18n = class_names[class_type] ?? `${plugin.class_i18n} ${plugin.type_i18n}`;
 			groups.add(class_type);
 			groups[class_type] = class_type_i18n;
 			plugins[plugin.id] = plugin;
@@ -52,20 +55,17 @@ return view.extend({
 			}
 		}
 
-		m = new form.Map(luci_plugins, _('Plugins'));
+		m = new form.Map(luci_plugins, _('Plugins'),
+			_('Plugins change how this web interface works, for example by adding ways to log in or headers to its HTTP responses. ' +
+			  'Each plugin stays off until it is enabled here.'));
 		m.tabbed = true;
 
-		s = m.section(form.NamedSection, 'global', 'global', _('Global Settings'));
-
-		o = s.option(form.Flag, 'enabled', _('Enabled'));
-		o.default = o.disabled;
-		o.optional = true;
-
-		for (const group of new Set([...groups].sort())) {
-			o = s.option(form.Flag, group + '_enabled', groups[group] + ' ' + _('Enabled'));
-			o.default = o.disabled;
-			o.optional = true;
-		}
+		if (!groups.size)
+			return E([], [
+				E('h2', {}, _('Plugins')),
+				E('div', { 'class': 'cbi-map-descr' }, m.description),
+				E('p', {}, E('em', {}, _('No plugins are installed.')))
+			]);
 
 		for (const group of new Set([...groups].sort())) {
 
